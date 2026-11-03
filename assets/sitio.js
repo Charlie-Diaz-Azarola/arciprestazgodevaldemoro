@@ -53,6 +53,7 @@
     iniciarReuniones(z);
     iniciarFiltros(z);
     iniciarDescargas(z);
+    iniciarCalendario(z);
   }
 
   /* ---------- pestañas ---------- */
@@ -137,6 +138,56 @@
           .then(function () { b.classList.remove("cargando"); });
       });
     });
+  }
+
+  /* ---------- calendario ---------- */
+  function iniciarCalendario(z) {
+    var detalle = $("#cal-detalle", z);
+    if (!detalle) return;
+    var VISIBLES = 3;
+    var meses = $$(".cal-mes", z);
+    var ultimoInicio = Math.max(0, meses.length - VISIBLES);
+    var anterior = $("#cal-anterior", z), siguiente = $("#cal-siguiente", z), periodo = $("#cal-periodo", z);
+
+    var t = new Date();
+    var mesActual = t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0");
+    var inicio = meses.findIndex(function (m) { return m.dataset.mes >= mesActual; });
+    inicio = inicio < 0 ? ultimoInicio : Math.min(inicio, ultimoInicio);
+
+    function pintar() {
+      meses.forEach(function (m, i) { m.hidden = i < inicio || i >= inicio + VISIBLES; });
+      var fin = Math.min(inicio + VISIBLES, meses.length) - 1;
+      var desde = meses[inicio].dataset.nombre, hasta = meses[fin].dataset.nombre;
+      var texto = desde === hasta ? desde : desde + " – " + hasta;
+      periodo.textContent = texto.charAt(0).toUpperCase() + texto.slice(1);
+      anterior.disabled = inicio === 0;
+      siguiente.disabled = inicio === ultimoInicio;
+    }
+    anterior.addEventListener("click", function () { inicio = Math.max(0, inicio - 1); pintar(); });
+    siguiente.addEventListener("click", function () { inicio = Math.min(ultimoInicio, inicio + 1); pintar(); });
+    pintar();
+
+    var cuerpo = $("#cal-detalle-cuerpo", z);
+    function abrirDetalle(id) {
+      var copia = z.querySelector("#" + id).cloneNode(true);
+      ["id", "role", "tabindex"].forEach(function (a) { copia.removeAttribute(a); });
+      cuerpo.innerHTML = "";
+      cuerpo.appendChild(copia);
+      detalle.showModal();
+    }
+    $$(".cal-marca", z).forEach(function (b) {
+      b.addEventListener("click", function () { abrirDetalle(b.dataset.evento); });
+    });
+    $$(".cal-lista .evento", z).forEach(function (t) {
+      t.setAttribute("role", "button");
+      t.setAttribute("tabindex", "0");
+      t.addEventListener("click", function () { abrirDetalle(t.id); });
+      t.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); abrirDetalle(t.id); }
+      });
+    });
+    // Un clic fuera de la ventana llega al propio <dialog>; dentro, a su contenido.
+    detalle.addEventListener("click", function (ev) { if (ev.target === detalle) detalle.close(); });
   }
 
   /* ---------- formulario ---------- */
